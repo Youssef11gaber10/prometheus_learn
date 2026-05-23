@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: prometheus-ns
+data:
+  # The name of the config file is "prometheus.yml"
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+
+    scrape_configs:
+      - job_name: 'prometheus-application'
+        static_configs:
+        - targets: ['localhost:9090']
+
+      # - job_name: 'node-exporter' # later
+      #   static_configs:
+      #   - targets: [
+      #               'worker-node-ip-1:9100',
+      #               'worker-node-ip-2:9100',
+      #               'worker-node-ip-3:9100'
+      #               ]
+      # this work your targets are static worker-node-ip
+      
+      # - job_name: 'node-exporter' 
+      #   static_configs: # we later can use Kubernetes Service Discovery to use k8s api to find all node-exporter pods directly
+      #   - targets: [
+      #               '172.20.0.3:9100',
+      #               '172.20.0.4:9100',
+      #               '172.20.0.2:9100'
+      #               ]
+
+      #  i just use SD 
+      - job_name: 'node-exporter' # if you have svc for node exporte he collects pods-ip from svc endpoints
+        kubernetes_sd_configs:
+        - role: endpoints
+        
+        relabel_configs:
+        - source_labels:
+            [__meta_kubernetes_service_name]
+          regex: node-exporter-svc
+          action: keep
+
+     
+
+      # - job_name: 'node-exporter'
+      #   kubernetes_sd_configs:
+      #   - role: pod # call k8s api to find all node-exporter pods and filter pods of node-exporter pods on label
+
+
+        # relabel_configs:
+        # - source_labels: [__meta_kubernetes_pod_label_<left_value_of_label>]
+        #   regex: <right_value_of_label_value>
+        #   action: keep
+
+        # relabel_configs:
+        # - source_labels: [__meta_kubernetes_pod_label_app]
+        #   regex: node-exporter-pod
+        #   action: keep
+
+        # - source_labels: [__meta_kubernetes_pod_phase]
+        #   regex: Running
+        #   action: keep
+
+        # - source_labels: [__meta_kubernetes_pod_node_name]
+        #   action: replace
+        #   target_label: instance
+        
+        # - source_labels: [__address__]
+        #   regex: '([^:]+)(?::\d+)?'
+        #   replacement: '${1}:9100'
+        #   target_label: __address__
+
+    rule_files:
+    - "rules.yml" # instead put rules here  all in one file 
+
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - 'alertmanager-svc:9093'
+
+  rules.yml: | # this configmap will make 2 files when mount this volume to specific path (promethues.yml, rules.yml)
+    groups: 
+      - name : group_of_rules
+        rules: 
+
+        # rule 1  have label critical
+        - alert: HighCPUUsageCritical
+          expr: 100 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100 > 90 # if node avg cpu idle (not working 9% - 100) is more than 90% so its use more than 90$
+          for: 30s # still in pending state for 1 minute then fire alert to alertmanager
+          labels: 
+            severity: "critical"
+          annotations:  
+            summary: 'cpu usage high'
+            description: 'cpu usage above 90% on {{ $labels.instance }}'
+
+        # rule 2
+        - expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90 # if node meme available / totoal * 100 > 90 so its use more than 90% usage of memory
+          for: 1m # still in pending state for 1 minute then fire alert to alertmanager
+          labels: 
+            severity: "critical"
+          alert: HighErrorRate 
+          annotations:  
+            summary: 'memory usage high'
+            description: 'memory usage above 90% on {{ $labels.instance }} expected OOM kills'
+

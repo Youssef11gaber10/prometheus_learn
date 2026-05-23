@@ -1,0 +1,48 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+
+metadata:
+  name: main
+  namespace: prometheus-ns
+
+spec:
+  replicas: 1 # one replica of the statefulset of prometheus
+
+  retention: 10d
+
+  # serviceAccountName: prometheus
+  # serviceAccountName: default
+  serviceAccountName: prometheus-sa 
+
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+
+    limits:
+      memory: 512Mi
+      cpu: 200m
+
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: standard
+        accessModes:
+          - ReadWriteOnce
+
+        resources:
+          requests:
+            storage: 2Gi
+
+  serviceMonitorSelector: {} # select all service monitor
+
+  ruleSelector: {} # select all rules
+  serviceMonitorNamespaceSelector: {}   # ← # get all srvice monitor so gets cadvisor metrics & kubernetes objects metrics(kube-state-metrics)
+
+  ruleNamespaceSelector: {}   # ← allows rules from  , this operator have customer rules if you want include it uncomment this 
+
+  alerting:
+    alertmanagers:
+      - namespace: prometheus-ns
+        name: alertmanager-operated # name of alertmanager
+        port: web # name port of alertmanager listen on it 9093

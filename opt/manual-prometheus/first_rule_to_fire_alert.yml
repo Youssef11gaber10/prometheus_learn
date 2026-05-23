@@ -1,0 +1,46 @@
+
+
+groups: 
+  - name : group_of_rules
+    rules: 
+
+    # rule 1  have label critical
+    - alert: HighCPUUsageCritical
+      expr: 100 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100 > 90 # if node avg cpu idle (not working 9% - 100) is more than 90% so its use more than 90$
+      for: 30s # still in pending state for 1 minute then fire alert to alertmanager
+      labels: 
+        severity: "critical"
+      annotations:  
+        summary: 'cpu usage high'
+        description: 'cpu usage above 90% on {{ $labels.instance }}'
+
+    # rule 2  have lable warn 
+    - expr: 100 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100 > 50 # if node avg cpu idle (not working 9% - 100) is more than 90% so its use more than 90$
+      for: 30s # still in pending state for 1 minute then fire alert to alertmanager
+      labels: 
+        severity: "warning"
+      alert: HighCPUUsageWarning
+      annotations:  
+        summary: 'cpu usage high'
+        description: 'cpu usage above 90% on {{ $labels.instance }}'
+
+
+    # rule not have label
+    - expr: 100 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100 > 30 # if node avg cpu idle (not working 9% - 100) is more than 90% so its use more than 90$
+      for: 30s # still in pending state for 1 minute then fire alert to alertmanager
+      labels: 
+        # severity: "warning"
+      alert: HighCPUUsage
+      annotations:  
+        summary: 'cpu usage high'
+        description: 'cpu usage above 90% on {{ $labels.instance }}'
+    
+
+    - expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90 # if node meme available / totoal * 100 > 90 so its use more than 90% usage of memory
+      for: 1m # still in pending state for 1 minute then fire alert to alertmanager
+      labels: 
+        severity: "critical"
+      alert: HighErrorRate 
+      annotations:  
+        summary: 'memory usage high'
+        description: 'memory usage above 90% on {{ $labels.instance }} expected OOM kills'

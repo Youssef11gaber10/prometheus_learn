@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager-deployment
+  namespace: prometheus-ns
+
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1 # so we can pe at update increase to 5pods at once (3 essential, 2 new)
+      maxUnavailable:  1 
+
+  selector:
+    matchLabels:
+      app: alertmanager-pod
+
+  template:
+    metadata:
+      labels:
+        app: alertmanager-pod
+    spec:
+      containers:
+      - name: alertmanager-container
+        image: prom/alertmanager
+        ports:  
+          - containerPort: 9093
+
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        
+        env: 
+          - name: GMAIL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: gmail-youssef11gabe10-secret
+                key: app-password
+
+        volumeMounts:
+          - name: vol-alertmanager-configmap
+            mountPath: /etc/alertmanager
+            readOnly: true
+
+        args: 
+          - "--config.file=/etc/alertmanager/alertmanager.yml"
+
+      volumes:
+        - name: vol-alertmanager-configmap
+          configMap:
+            name: alertmanager-config
+
+

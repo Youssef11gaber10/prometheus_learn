@@ -1,0 +1,14 @@
+opt/manual-prometheus/promtool
+opt/manual-prometheus/prometheus
+opt/manual-prometheus/NOTICE
+opt/manual-prometheus/LICENSE
+opt/manual-prometheus/grafana-v11.1.0
+opt/manual-prometheus/data
+
+opt/manual-prometheus/node_exporter-1.9.1.linux-amd64
+
+opt/manual-prometheus/alertmanager-0.28.1.linux-amd64/alertmanager
+opt/manual-prometheus/alertmanager-0.28.1.linux-amd64/amtool
+opt/manual-prometheus/alertmanager-0.28.1.linux-amd64/NOTICE
+opt/manual-prometheus/alertmanager-0.28.1.linux-amd64/LICENSE
+opt/manual-prometheus/alertmanager-0.28.1.linux-amd64/data/

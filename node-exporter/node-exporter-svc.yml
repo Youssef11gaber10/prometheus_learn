@@ -1,0 +1,52 @@
+# apiVersion: v1
+# kind: Service
+# namespace: prometheus-ns
+# metadata:
+#   name: node-exporter-svc
+# spec:
+#   selector:
+#     app: node-exporter-pod
+#   ports:
+#   - port: 9100
+#     targetPort: 9100
+#   type: ClusterIP 
+#   # this svc route to node ip so you can use worker-node-ip:9100 or node-exporter-svc:9100 both are same ip
+  # 
+
+# Option 1:
+# no need to create node-exporter Service
+# because node-exporter uses hostNetwork:true
+# so Prometheus can scrape:
+# worker-node1-ip:9100
+# worker-node2-ip:9100
+# worker-node3-ip:9100
+
+# Option 2 (better in Kubernetes):
+# use Kubernetes Service Discovery
+# Prometheus discovers all node-exporter pods dynamically 
+  # if use 
+#    kubernetes_sd_configs:
+#      - role: pod
+# through the Kubernetes API (not through the Service itself)
+
+#or you can use SD 
+  #kubernetes_sd_configs:
+    #- role: endpoints
+    # here need to make service for node-exporter 
+    #so he get pods for endpoints of svc
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-exporter-svc
+  namespace: prometheus-ns      # ← FIX 1: correct namespace
+  labels:
+    app: node-exporter-pod      # ← FIX 2: label so ServiceMonitor finds it
+spec:
+  selector:
+    app: node-exporter-pod
+  ports:
+  - port: 9100
+    targetPort: 9100
+    name: metrics
+  type: ClusterIP

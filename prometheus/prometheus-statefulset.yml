@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: prometheus-stateful
+  namespace: prometheus-ns
+spec:
+  serviceName: prometheus-headless-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-pod
+
+  
+  template:
+    metadata:
+      labels:
+        app: prometheus-pod
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus
+        ports:
+        - containerPort: 9090
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        args: # like CMD in docker, command like entrypoint in docker
+        - "--config.file=/etc/prometheus/prometheus.yml"
+        - "--storage.tsdb.path=/prometheus" # instead of data folder
+        - "--web.enable-lifecycle" # this to hit curl -X POST http://localhost:9090/-/reload this endpoint it will reload config file instead of restart or rolling update
+
+        volumeMounts: # mount 2 things volume configmap and pvc
+          - name: vol-prometheus-config
+            mountPath: /etc/prometheus # so this config map create 2 files inside /etc/prometheus/ (prometheus.yml and rules.yml)
+            
+          - name: pvc-prometheus
+            mountPath: /prometheus # instead we save our data inside folder 'data' here when work as service save /prometheus
+
+      volumes: # make volume from configmap
+      - name: vol-prometheus-config
+        configMap:
+          name: prometheus-config # name of configmap
+
+
+  volumeClaimTemplates:
+  - metadata:
+      name: pvc-prometheus
+    spec:
+      storageClassName: "standard" # if you don't define will take default SC if you have default one here is 'standard'
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 2Gi

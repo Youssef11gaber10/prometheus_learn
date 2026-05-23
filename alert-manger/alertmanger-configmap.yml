@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: prometheus-ns
+data:
+  alertmanager.yml: | 
+    global:
+      resolve_timeout: 1m 
+      smtp_smarthost: smtp.gmail.com:587
+      smtp_from: "youssef11gaber10@gmail.com"
+      smtp_auth_username:  "youssef11gaber10@gmail.com"
+      # smtp_auth_password: "${GMAIL_PASSWORD}"
+      # smtp_auth_password: "app_password"
+
+    receivers:
+
+      - name: 'default_email' 
+        email_configs:                                 
+          - to: 'yooossef11gaber10@gmail.com'
+            send_resolved: true 
+
+      - name: 'warn_email' # recieve fired alerts with severity warning
+        email_configs:
+          - to: 'yoossef11gaber10@gmail.com'
+            send_resolved: true #send alert when firing & when resoved send email also
+
+
+      - name: 'slack_for_critical_alerts' # recieve fired alerts with severity critical
+        slack_configs:
+          - api_url: ""
+            channel: '#promethues_channel'
+            send_resolved: true
+
+
+    route:
+
+      receiver: 'default_email'
+      group_by: ['...'] 
+      group_wait: 1s 
+      group_interval: 1s 
+      repeat_interval: 1m 
+
+
+      routes:
+        - match: 
+            severity: 'warning'
+          receiver: 'warn_email'
+          group_by: ['alertname']
+          group_wait: 10s # wait 10s for first time if new alert come with same alert name so join this grouping together in first email
+          group_interval: 10s # if another alert come with same alert name after 10s so join this grouping together in second email with new alert message
+          repeat_interval: 1m # wait 1m between 1 email and next email
+
+        - match: 
+            severity: 'critical'
+          receiver: 'slack_for_critical_alerts'
+          group_by: ['instance'] # cancel grouping group on nothing
+          group_wait: 30s 
+          group_interval: 30s
+          repeat_interval: 30s

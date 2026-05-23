@@ -1,0 +1,86 @@
+# my global config
+global:
+  # scrape (يكشط) means how frequently to scrape targets
+  scrape_interval: 15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  # evaluation_interval is how often the rules should be re-evaluated to determine if we need to fire an alert to the alertmanager
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  # scrape_timeout is set to the global default (10s).
+
+
+
+
+
+
+# here in scrape_configs we define the all targets we want to scrape
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself. # here scrape the port 9090 that have the prometheus server itself 
+# prometheus server have endpoint /metrics localhost:9090/metrics -> he collect metrics this endpoint produce
+#list , each item is a job -> job is a group of targets
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  # my first first group all metrics from this job will take the label job=prometheus -> to define this from job_name -> job_name: "prometheus" 
+  # you can add label to each target in this job/group instance=localhost:9090
+  - job_name: "prometheus-application" # called prometheus , means i will scrape the prometheus server itself
+  # in this target go and fetch /metrics & http
+    metrics_path: '/metrics' # metrics_path defaults to '/metrics'
+    scheme: 'http' # scheme defaults to 'http'.
+    # if you not write them will be by default written
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+    scrape_interval: 5s # Set the scrape interval to every 5 seconds. # this override the global scrape_interval
+
+    # this mean i define static targets not get them dynamically from service discovery
+
+    static_configs:
+      # here alos i can add more that one target in this job all under job called prometheus -> job_name: "prometheus"
+      # - targets: ["localhost:9090", "localhost:9100/metrics"] # go
+      - targets: ["localhost:9090"]
+       # The label name is added as a label `label_name=<label_value>` to any timeseries scraped from this config.
+        labels:
+          app: "prometheus" # for each metrics i will add this labels to it
+          instance: "localhost:9090"
+        # the endpoint localhost:9090/metrics gives us alot of metrics about the prometheus server itself in response to /metrics request 
+        # each metric are stored in a separate timeseries. so each metric will have labels app=prometheus & instance=localhost:9090
+      
+
+# i want to add another target -> this target will be my laptop  (or any machine i want to monitor)
+        #  but this machine not have /metrics endpoint in its Operating System so i need to install  node exporter on this machine (my laptop) so 
+        # this exporter will produce for us /metrics endpoint that have metrices about (cpu,ram,disk,network) node exporter open on port 9100
+        # - targets: ["localhost:9090", "192.168.0.250:9100/metrics"]
+        # or
+        # - targets: ["localhost:9090", "localhost:9100/metrics"] 
+        # or 
+        # - targets: ["localhost:9090", "localhost:9100"] because by default we make metrics path /metrics (by default fetch ths )
+        
+# or add another job 
+
+  - job_name: "machines-metrics"
+    metrics_path: '/metrics'
+    scheme: 'http'
+    static_configs:
+      - targets: ["localhost:9100"]
+        labels:
+          node_info: "localhost:9100"
+
+
+
+# define rules to file alerts and define alert magner to send alerts 
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+# make your rules .yml file and include them here 
+
+#after you scrape the data i want make some rules on it  so we put it identiation of global cause we aleady not realted to specific target
+# it realted to scraped data from all targets 
+rule_files:
+  - "./first_rule_to_fire_alert.yml"
+  # - "second_rule_to_fire_alert.yml"
+
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: # tell prometheus when see an alert to send it to alertmanager on port 9093 to match its rules and send an alert (slack,email,pagerduty)
+          - localhost:9093
+
+  

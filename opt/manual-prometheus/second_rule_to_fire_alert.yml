@@ -1,0 +1,17 @@
+
+
+
+groups: 
+  - name : group_of_rules
+    rules: 
+    # rule 1  this rule measuer usage of each core in cpu  
+    - alert: cpu_per_core_alert
+      expr: (100 - ( avg by(instance, cpu) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100 )) > 20
+      for: 10s # still in pending state for 1 minute then fire alert to alertmanager
+      labels: 
+        # this goes to slack so will follow grouping rules of route reciver slack
+        severity: "critical" # to be send to salck -> i make in alert manager fired alerts comes with lable critical are send to slack
+        # severity: "warning" # this alert will fire with label warning , later in alert manger see this label and send it to specific receiver handle this warn alerts (slack , email)
+      annotations:  
+        summary: 'cpu usage high on core {{ $labels.cpu }}'
+        description: 'cpu core {{ $labels.cpu }} usage above 90% on {{ $labels.instance }} is above 20%'

@@ -1,0 +1,21 @@
+# this service monitor for node-exporter to monitor svc -> pod of node-exporter can be svc -> (any applicatoin pod)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+
+metadata:
+  name: node-exporter
+  namespace: prometheus-ns
+
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter-pod
+
+  endpoints:
+    - port: metrics
+    # - port: 9100
+      interval: 15s
+
+  namespaceSelector:
+    matchNames:
+      - prometheus-ns

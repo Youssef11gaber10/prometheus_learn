@@ -1,0 +1,116 @@
+# global config #this config can apply to all receivers in this file can use it
+global:
+# use the email credentails to be as sended email used by alert manger 
+# credentials alert manager use to send alerts (those arn't recivers )
+#put cofiguration connect with email , pagerduty , slack , telegram , etc
+#gmail as service user (alert manger use this email to send email from it )
+  smtp_smarthost: smtp.gmail.com:587
+  smtp_from: "youssef11gaber10@gmail.com"
+  smtp_auth_username:  "youssef11gaber10@gmail.com"
+  smtp_auth_password: "app_password"
+  smtp_require_tls: true
+
+  # when an alert is fired send alert then it fire again send alert then it resolved so alert manager wait 5m before make this alert resolved
+  #this is for how long to wait for an alert to change state from fired to resolved  
+  # this global config can apply to all receivers in this file
+  resolve_timeout: 1m
+
+
+# list of receivers i will make rules to send to each one of them 
+receivers:
+
+  - name: 'default_email' # recieve fired alerts with no labels
+    email_configs:                                 
+      - to: 'yooossef11gaber10@gmail.com'
+        send_resolved: true  #send alert when firing & when resoved send email also
+
+  - name: 'warn_email' # recieve fired alerts with severity warning
+    email_configs:
+      - to: 'yoossef11gaber10@gmail.com'
+        send_resolved: true #send alert when firing & when resoved send email also
+
+  - name: 'slack_for_critical_alerts' # recieve fired alerts with severity critical
+    slack_configs:
+      - api_url: "webhook_url"
+        channel: '#promethues_channel'
+        send_resolved: true
+
+
+route:
+  #global grouping goes to default reciver
+  # group_by: ['severity']
+
+
+# default receiver any fired alerts not have labels sends to default_email (default reciver)
+  receiver: 'default_email' # choose default email for any alert not found rule match his labels sends to default email
+  # group_by: ['alertname'] # leave like default
+  # this is global grouping this grouping goes to default_receiver
+  group_by: ['...'] # cancel grouping group on nothing
+  group_wait: 1s # no wait for grouping
+  group_interval: 1s # no wait after first alert if new alert come with same label to join this group i cancel grouping 
+  repeat_interval: 1m # just control interval to send email no matter to grouping
+
+
+
+# subroutes inside route , other alerts not have this labels got to default_email
+  routes:
+    - match: 
+        severity: 'warning'
+      receiver: 'warn_email'
+      group_by: ['alertname']
+      group_wait: 10s # wait 10s for first time if new alert come with same alert name so join this grouping together in first email
+      group_interval: 10s # if another alert come with same alert name after 10s so join this grouping together in second email with new alert message
+      repeat_interval: 1m # wait 1m between 1 email and next email
+
+    - match: 
+        severity: 'critical'
+      receiver: 'slack_for_critical_alerts'
+      group_by: ['instance'] # cancel grouping group on nothing
+      group_wait: 30s 
+      group_interval: 30s
+      repeat_interval: 30s
+# other receivers
+# this is reciver recieve email from sender 'youssef11gaber10@gmail.com'
+
+
+  # group_by: ['...'] # by default prometheus do grouping by alertname , so i cancel this to see noise
+
+# # this is grouping 
+#   # group by alertname , so if you have 
+  # group_by: ['alertname']
+#   # cpu usage high from node1
+#   # cpu usage high from node1
+#   # cpu usage high from node2
+#   # cpu usage high from node2
+#   # collect 4 of them under cpu usage high 
+#   # for more  grouping specify 
+#   group_by: ['alertname', 'instance']
+#   # cpu usage high from node1
+#   # cpu usage high from node1
+#   # those 2 alerts will be under cpu usage high from node1
+#   # cpu usage high from node2
+#   # cpu usage high from node2
+#   # those 2 alerts will be under cpu usage high from node2
+#   #
+#   #wait 30 sec for more alerts come with same alert name or instance so join this grouping together
+#   group_wait: 30s
+# #   # if after 30 s send this grouping together and there come new message to this group wait 5 minutes then send it in another group of message 
+#   group_interval: 5m
+# #   # if same alert still exist and still grouping together after 1 hour send reminder again 
+#   repeat_interval: 1h
+
+
+
+
+
+# inhibit_rules:
+
+#   # if there alerts equals in alertname and instance and dev 
+#   # and full server is down it will send alert warn & critical 
+#   # so ignore all warning alerts from same server because 
+#   - equal: ['alertname', 'dev', 'instance']
+#     source_match: # i
+#       severity: 'critical'
+#     target_match:
+#       severity: 'warning'
+    

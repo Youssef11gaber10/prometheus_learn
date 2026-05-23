@@ -1,0 +1,16 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster # here not called maria-db here caled cluster
+metadata:
+  name: my-postgres
+spec:
+  instances: 3
+
+  storage:
+    size: 5Gi
+
+  bootstrap:  # this bootstrap run at start up of db
+    initdb: #this is init file run at start up of db
+      database: app-db # create database called appdb
+      owner: gaber # create user called gaber owner of database app-db
+      secret: # create password for user called app-secret
+        name: db-secret

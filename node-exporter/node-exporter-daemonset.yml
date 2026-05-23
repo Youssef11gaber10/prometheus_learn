@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter-ds 
+  namespace: prometheus-ns # daemonset is namespaced object (its objects stored in specific namespace) but its behavior is global on cluster-wide each node have pod
+  
+
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter-pod
+
+  template:
+    metadata:
+      labels:
+        app: node-exporter-pod
+
+    spec:
+    #most important 3 things here 
+      # this pod now its pod-ip==node-ip , os this pod take ip same as node ip so it use subnet of node that are on worker node 
+      # so you can use worker-node-ip:9100 or node-exporter-svc:9100 both are same ip
+      hostNetwork: true # it can read info network of node not network of pod
+      hostPID: true # it can read info of pid of node not pid of container ,optional
+      tolerations:
+        - operator: Exists # pass all tolerations to send pod on control plane node
+      containers:
+      - name: node-exporter
+        image: prom/node-exporter
+        ports:
+        - containerPort: 9100
+          hostPort: 9100  # just description not real port mapping
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+
+        args: 
+        - "--path.procfs=/host/proc"
+        - "--path.sysfs=/host/sys"
+        - "--path.rootfs=/rootfs"
+
+        volumeMounts:
+          - name: proc
+            mountPath: /host/proc # in another path cause /proc exist but for container itself
+            readOnly: true # make it read only 
+          - name: sys
+            mountPath: /host/sys # in another path cause /sys exist but for container itself
+            readOnly: true
+          - name: root
+            mountPath: /rootfs
+            readOnly: true
+
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc # on worker node
+        
+        - name: sys
+          hostPath:
+            path: /sys # on worker node
+        - name: root
+          hostPath:
+            path: / # on worker node
+
+
+
+        
+
+      
